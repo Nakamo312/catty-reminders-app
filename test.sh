@@ -7,9 +7,6 @@ fi
 
 export PYTHONPATH="/home/v1k70r/tmp/catty-reminders-app:$PYTHONPATH"
 
-echo "🔧 Установка браузеров Playwright..."
-playwright install
-
 echo "🌐 Запуск тестового экземпляра приложения на порту 8282..."
 uvicorn app.main:app --host 0.0.0.0 --port 8282 &
 APP_PID=$!
