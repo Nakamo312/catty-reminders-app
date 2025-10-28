@@ -1,0 +1,50 @@
+name: Deploy
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout latest code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 
+
+    - name: Setup environment
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: Run tests
+      id: run-tests
+      run: |
+        echo "🧪 Запуск тестов на обновленном коде..."
+        chmod +x test.sh
+        if ./test.sh; then
+          echo "tests_passed=true" >> $GITHUB_OUTPUT
+        else
+          exit 1
+        fi
+
+    - name: Execute deployment
+      if: steps.run-tests.outputs.tests_passed == 'true'
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: course.prafdin.ru
+        port: 2436
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          echo "🚀 Запуск деплоя..."
+          cd /path/to/your/app
+          chmod +x deploy.sh
+          ./deploy.sh
+          echo "✅ Деплой завершен!"
