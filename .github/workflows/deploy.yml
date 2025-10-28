@@ -3,7 +3,6 @@ name: Deploy
 on:
   release:
     types: [published]
-s
 jobs:
   deploy:
     runs-on: ubuntu-latest
