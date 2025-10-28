@@ -59,7 +59,7 @@ jobs:
     - name: Push to GitHub Container Registry
       if: github.event_name != 'pull_request'
       run: |
-        REPO_NAME="${{ github.repository_owner }}/catty-reminders-app"
+        REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
         
         docker tag catty-reminders-app:latest ghcr.io/$REPO_NAME:latest
         docker tag catty-reminders-app:${{ github.sha }} ghcr.io/$REPO_NAME:${{ github.sha }}
