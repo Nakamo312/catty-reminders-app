@@ -1,13 +1,10 @@
 name: Deploy
 
 on:
-  workflow_dispatch:
-  workflow_run:
-    workflows: ["ci"]  
-    types: [success]
-    branches: [ docker ]
-  release:
-    types: [published]
+  push:
+    branches: [docker]
+  pull_request:
+    branches: [docker]
 jobs:
   deploy:
     runs-on: ubuntu-latest
