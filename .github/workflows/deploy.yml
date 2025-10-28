@@ -4,7 +4,8 @@ on:
   workflow_dispatch:
   workflow_run:
     workflows: ["ci"]  
-    types: [completed]
+    types: [success]
+    branches: [ docker ]
   release:
     types: [published]
 jobs:
@@ -31,7 +32,7 @@ jobs:
         username: ${{ secrets.SSH_USERNAME }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          echo "🚀 Starting Docker deployment..."
+          echo "Starting Docker deployment..."
           
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
@@ -46,10 +47,3 @@ jobs:
             -p 8181:8181 \
             -e ENVIRONMENT=production \
             ghcr.io/nakamo312/catty-reminders-app:latest
-          
-          sleep 5
-          echo "📊 Container status:"
-          docker ps --filter "name=catty-app"
-          
-          echo "✅ Docker deployment completed!"
-          echo "🌐 Application available at: http://app.shehmatov.course.prafdin.ru"
