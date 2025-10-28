@@ -1,41 +1,31 @@
 name: Deploy
 
 on:
+  workflow_run:
+    workflows: ["CI"]  
+    types: [completed]
   release:
     types: [published]
-
 jobs:
   deploy:
+    if: >
+      github.event_name == 'release'  ||
+      github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout latest code
-      uses: actions/checkout@v4
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
       with:
-        fetch-depth: 
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Setup environment
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-
-    - name: Install dependencies
+    - name: Pull latest Docker image
       run: |
-        pip install -r requirements.txt
+        docker pull ghcr.io/nakamo312/catty-reminders-app:latest
 
-    - name: Run tests
-      id: run-tests
-      run: |
-        echo "🧪 Запуск тестов на обновленном коде..."
-        chmod +x test.sh
-        if ./test.sh; then
-          echo "tests_passed=true" >> $GITHUB_OUTPUT
-        else
-          exit 1
-        fi
-
-    - name: Execute deployment
-      if: steps.run-tests.outputs.tests_passed == 'true'
+    - name: Deploy to VM via SSH
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: course.prafdin.ru
@@ -43,8 +33,25 @@ jobs:
         username: ${{ secrets.SSH_USERNAME }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          echo "🚀 Запуск деплоя..."
-          cd /path/to/your/app
-          chmod +x deploy.sh
-          ./deploy.sh
-          echo "✅ Деплой завершен!"
+          echo "🚀 Starting Docker deployment..."
+          
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+          docker stop catty-app || true
+          docker rm catty-app || true
+          
+          docker pull ghcr.io/nakamo312/catty-reminders-app:latest
+          
+          docker run -d \
+            --name catty-app \
+            --restart unless-stopped \
+            -p 8181:8181 \
+            -e ENVIRONMENT=production \
+            ghcr.io/nakamo312/catty-reminders-app:latest
+          
+          sleep 5
+          echo "📊 Container status:"
+          docker ps --filter "name=catty-app"
+          
+          echo "✅ Docker deployment completed!"
+          echo "🌐 Application available at: http://app.shehmatov.course.prafdin.ru"
