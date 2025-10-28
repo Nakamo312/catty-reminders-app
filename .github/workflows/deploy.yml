@@ -1,27 +1,21 @@
 name: Deploy
 
 on:
-  push:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [docker]
-  pull_request:
-    branches: [docker]
+  release:
+    types: [published]
+
 jobs:
   deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'release' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     
     steps:
-    - name: Log in to GitHub Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Pull latest Docker image
-      run: |
-        docker pull ghcr.io/nakamo312/catty-reminders-app:latest
-
-    - name: Deploy to VM via SSH
+    - name: Deploy Docker container to VM
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: course.prafdin.ru
@@ -29,18 +23,44 @@ jobs:
         username: ${{ secrets.SSH_USERNAME }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          echo "Starting Docker deployment..."
+          echo "🚀 Starting Docker deployment..."
           
+          # Логинимся в GitHub Container Registry
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
+          
+          # Останавливаем и удаляем старый контейнер
+          echo "🔄 Stopping old container..."
           docker stop catty-app || true
           docker rm catty-app || true
           
+          # Pull нового образа из CI пайплайна
+          echo "📥 Pulling latest image from CI..."
           docker pull ghcr.io/nakamo312/catty-reminders-app:latest
           
+          # Запускаем новый контейнер с авто-рестартом
+          echo "🐳 Starting new container..."
           docker run -d \
             --name catty-app \
             --restart unless-stopped \
             -p 8181:8181 \
             -e ENVIRONMENT=production \
             ghcr.io/nakamo312/catty-reminders-app:latest
+          
+          # Ждем и проверяем запуск
+          echo "⏳ Waiting for container to start..."
+          sleep 10
+          
+          # Проверяем статус контейнера
+          echo "📊 Container status:"
+          docker ps --filter "name=catty-app"
+          
+          # Проверяем что приложение отвечает
+          echo "🔍 Testing application health..."
+          if curl -f http://localhost:8181; then
+            echo "✅ Application is healthy!"
+          else
+            echo "⚠️ Application is starting..."
+          fi
+          
+          echo "🎉 Docker deployment completed!"
+          echo "🌐 Application available at: http://app.shehmatov.course.prafdin.ru"
