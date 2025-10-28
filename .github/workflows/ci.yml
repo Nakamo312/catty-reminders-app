@@ -1,3 +1,4 @@
+
 name: CI
 
 on:
@@ -10,62 +11,20 @@ jobs:
   test:
     runs-on: ubuntu-latest
     
-    strategy:
-      matrix:
-        python-version: [3.9, 3.10, 3.11]
-    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-        cache: 'pip'
-    
-    - name: Install dependencies
-      run: |
-        pip install -r requirements.txt
-    
-    - name: Run test.sh if exists
-      run: |
-        if [ -f "test.sh" ]; then
-          chmod +x test.sh
-          ./test.sh
-        else
-          echo "No test.sh found"
-        fi
-      continue-on-error: true    
-    - name: Validate JSON files
-      run: |
-        python -m json.tool config.json > /dev/null && echo "config.json is valid"
-        python -m json.tool inputs.json > /dev/null && echo "inputs.json is valid"
-        python -m json.tool reminder_db.json > /dev/null && echo "reminder_db.json is valid"
-      continue-on-error: true
 
-  lint:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-    
-    - name: Install linters
+
+    - name: Install dependencies
       run: |
-        pip install flake8 pylint
-    
-    - name: Run flake8
+        pip install -r requirements.txt
+
+    - name: Run test.sh
       run: |
-        flake8 app/ --max-line-length=120 || echo "Flake8 check completed"
-      continue-on-error: true
-    
-    - name: Run pylint
-      run: |
-        pylint app/ --disable=C0114,C0115,C0116,W0613 || echo "Pylint check completed"
-      continue-on-error: true
+        chmod +x test.sh
+        ./test.sh
