@@ -1,11 +1,10 @@
-
 name: CI
 
 on:
   push:
-    branches: [github-actions]
+    branches: [docker]
   pull_request:
-    branches: [github-actions]
+    branches: [docker]
 
 jobs:
   test:
@@ -28,3 +27,42 @@ jobs:
       run: |
         chmod +x test.sh
         ./test.sh
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Lint Dockerfile
+      run: |
+        docker run --rm -i hadolint/hadolint < Dockerfile
+      continue-on-error: true
+
+    - name: Build Docker image
+      run: |
+        docker build -t catty-reminders-app:latest .
+        docker tag catty-reminders-app:latest catty-reminders-app:${{ github.sha }}
+        docker tag catty-reminders-app:latest catty-reminders-app:${{ github.ref_name }}
+        
+
+    - name: Log in to GitHub Container Registry
+      if: github.event_name != 'pull_request'  
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Push to GitHub Container Registry
+      if: github.event_name != 'pull_request'
+      run: |
+        docker tag catty-reminders-app:latest ghcr.io/${{ github.repository }}:latest
+        docker tag catty-reminders-app:${{ github.sha }} ghcr.io/${{ github.repository }}:${{ github.sha }}
+        docker tag catty-reminders-app:${{ github.ref_name }} ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+        
+        docker push ghcr.io/${{ github.repository }}:latest
+        docker push ghcr.io/${{ github.repository }}:${{ github.sha }}
+        docker push ghcr.io/${{ github.repository }}:${{ github.ref_name }}
