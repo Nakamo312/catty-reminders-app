@@ -312,5 +312,5 @@ async def post_create_new_lists(
   storage.strike_item(storage.add_item(projects_id, "Paint the fence"))
   storage.add_item(projects_id, "Replace the toilet")
   storage.add_item(projects_id, "Install new curtain rods")
-
+app.shehmatov.course.prafdin.ru
   return {}
