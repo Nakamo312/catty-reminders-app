@@ -3,6 +3,8 @@ name: Deploy
 on:
   release:
     types: [published]
+  push:          
+    branches: [docker]
 jobs:
   deploy:
     runs-on: ubuntu-latest
