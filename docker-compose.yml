@@ -4,7 +4,7 @@ services:
   web:
     image: ghcr.io/nakamo312/catty-reminders-app:latest
     ports:
-      - "8181:8181" 
+      - "8000:8181" 
     environment:
       - DATABASE_URL=mysql+pymysql://root:mypass@db:3306/catty_reminders
       - ENVIRONMENT=production
