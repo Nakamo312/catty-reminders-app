@@ -2,13 +2,64 @@ name: CI
 
 on:
   push:
-    branches: [docker-compose]
+    branches: [docker-compose, main]
   pull_request:
-    branches: [docker-compose]
+    branches: [docker-compose, main]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: mypass
+          MYSQL_DATABASE: catty_reminders
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: Wait for MySQL to be ready
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y mysql-client
+        while ! mysqladmin ping -h"127.0.0.1" -P3306 -uroot -pmypass --silent; do
+          sleep 1
+        done
+        echo "MySQL is ready!"
+
+    - name: Initialize test database
+      run: |
+        mysql -h 127.0.0.1 -P 3306 -u root -pmypass -e "CREATE DATABASE IF NOT EXISTS catty_reminders;"
+        mysql -h 127.0.0.1 -P 3306 -u root -pmypass catty_reminders < db/init.sql
+
+    - name: Run test.sh
+      run: |
+        chmod +x test.sh
+        ./test.sh
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: test
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
