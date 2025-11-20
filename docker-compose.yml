@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  web:
+    image: ghcr.io/nakamo312/catty-reminders-app:latest
+    ports:
+      - "8181:8181" 
+    environment:
+      - DATABASE_URL=mysql+pymysql://root:mypass@db:3306/catty_reminders
+      - ENVIRONMENT=production
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - catty-network
+    restart: unless-stopped
+    pull_policy: always
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: mypass 
+      MYSQL_DATABASE: catty_reminders  
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - catty-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+
+networks:
+  catty-network:
+    driver: bridge

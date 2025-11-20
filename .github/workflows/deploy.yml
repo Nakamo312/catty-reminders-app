@@ -1,0 +1,32 @@
+name: Deploy with Docker Compose
+
+on:
+  release:
+    types: [published]
+    
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Deploy Docker Compose stack
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: course.prafdin.ru
+        port: 2436
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+ 
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+          cd /opt/catty-app
+          
+          docker-compose pull
+          
+          docker-compose up -d
+          
+          sleep 30
+          
+          docker-compose ps
+          

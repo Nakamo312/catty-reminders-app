@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [docker-compose, main]
+  pull_request:
+    branches: [docker-compose, main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: Run tests
+      run: |
+        chmod +x test.sh
+        ./test.sh
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Build Docker image
+      run: |
+        docker build -t catty-app:latest .
+
+    - name: Log in to GitHub Container Registry
+      if: github.event_name != 'pull_request'  
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Push to GitHub Container Registry
+      if: github.event_name != 'pull_request'
+      run: |
+        docker tag catty-app:latest ghcr.io/nakamo312/catty-reminders-app:latest
+        docker tag catty-app:latest ghcr.io/nakamo312/catty-reminders-app:${{ github.sha }}
+        docker push ghcr.io/nakamo312/catty-reminders-app:latest
+        docker push ghcr.io/nakamo312/catty-reminders-app:${{ github.sha }}
