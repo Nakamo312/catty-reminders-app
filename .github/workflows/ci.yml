@@ -1,3 +1,11 @@
+name: CI
+
+on:
+  push:
+    branches: [docker]
+  pull_request:
+    branches: [docker]
+
 jobs:
   build:
     runs-on: ubuntu-latest
