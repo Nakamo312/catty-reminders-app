@@ -32,12 +32,3 @@ jobs:
           sleep 30
           
           docker-compose ps
-          
-          echo "🔍 Testing application..."
-          if curl -f http://localhost:8181; then
-            echo "✅ Application deployment successful!"
-          else
-            echo "⚠️ Application is starting, check logs with: docker-compose logs"
-          fi
-          
-          echo "🎉 Docker Compose deployment completed!"
