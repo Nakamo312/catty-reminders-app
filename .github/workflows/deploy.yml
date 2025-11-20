@@ -3,24 +3,27 @@ name: Deploy with Docker Compose
 on:
   release:
     types: [published]
-    
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Deploy Docker Compose stack
+    - name: Deploy with Docker Compose
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: course.prafdin.ru
         port: 2436
         username: ${{ secrets.SSH_USERNAME }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script_stop: true
+        timeout: 60s
         script: |
- 
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-          cd /opt/catty-app
+          set -e  
+         
+          cd ~/tmp/catty-reminders-app 
+          
+          git pull origin docker-compose  
           
           docker-compose pull
           
@@ -30,3 +33,11 @@ jobs:
           
           docker-compose ps
           
+          echo "🔍 Testing application..."
+          if curl -f http://localhost:8181; then
+            echo "✅ Application deployment successful!"
+          else
+            echo "⚠️ Application is starting, check logs with: docker-compose logs"
+          fi
+          
+          echo "🎉 Docker Compose deployment completed!"
